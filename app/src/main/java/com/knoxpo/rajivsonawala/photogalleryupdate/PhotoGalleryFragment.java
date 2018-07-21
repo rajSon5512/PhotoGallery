@@ -1,5 +1,7 @@
 package com.knoxpo.rajivsonawala.photogalleryupdate;
 
+import android.graphics.drawable.Drawable;
+import android.media.Image;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -9,7 +11,10 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.bumptech.glide.Glide;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,8 +47,8 @@ public class PhotoGalleryFragment extends Fragment {
         mPhotoRecyclerView.setLayoutManager(new GridLayoutManager(getActivity(), 3));
 
         Log.i(TAG, "onCreateView: Your oncreate View ");
-        
-        
+
+
         setupAdapter();
 
         return v;
@@ -56,16 +61,30 @@ public class PhotoGalleryFragment extends Fragment {
     }
 
     private class PhotoHolder extends RecyclerView.ViewHolder {
-        private TextView mTitleTextView;
+        private ImageView mImageView;
 
         public PhotoHolder(View itemView) {
             super(itemView);
 
-            mTitleTextView = (TextView) itemView;
+            mImageView = itemView.findViewById(R.id.item_image_view);
+        }
+
+        public void bindDrawable(Drawable drawable) {
+
+            mImageView.setImageDrawable(drawable);
+
         }
 
         public void bindGalleryItem(GalleryItem item) {
-            mTitleTextView.setText(item.toString());
+            GlideApp.with(getActivity())
+                    .load(item.getUrl())
+                    .placeholder(R.drawable.ic_image)
+                    .dontAnimate()
+                    .into(mImageView);
+
+            /*Glide.with(getActivity())
+                    .load(item.getUrl())
+                    .into(mImageView);*/
         }
     }
 
@@ -79,14 +98,17 @@ public class PhotoGalleryFragment extends Fragment {
 
         @Override
         public PhotoHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
-            TextView textView = new TextView(getActivity());
-            return new PhotoHolder(textView);
+            LayoutInflater inflater = LayoutInflater.from(getActivity());
+            View view = inflater.inflate(R.layout.list_item_gallery, viewGroup, false);
+            return new PhotoHolder(view);
         }
 
         @Override
         public void onBindViewHolder(PhotoHolder photoHolder, int position) {
-            GalleryItem galleryItem = mGalleryItems.get(position);
-            photoHolder.bindGalleryItem(galleryItem);
+            Log.d(TAG, mGalleryItems.get(position).getUrl());
+         //   Drawable placeholder = getResources().getDrawable(R.drawable.bill_up_close);
+            //photoHolder.bindDrawable(placeholder);
+            photoHolder.bindGalleryItem(mGalleryItems.get(position));
         }
 
         @Override
@@ -95,7 +117,7 @@ public class PhotoGalleryFragment extends Fragment {
         }
     }
 
-    private class FetchItemsTask extends AsyncTask<Void,Void,List<GalleryItem>> {
+    private class FetchItemsTask extends AsyncTask<Void, Void, List<GalleryItem>> {
         @Override
         protected List<GalleryItem> doInBackground(Void... params) {
             return new FlickrFetchr().fetchItems();

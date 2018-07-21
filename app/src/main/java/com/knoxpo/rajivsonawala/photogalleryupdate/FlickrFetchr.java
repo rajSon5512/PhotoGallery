@@ -26,6 +26,8 @@ public class FlickrFetchr {
         URL url = new URL(urlSpec);
 
         HttpURLConnection connection = (HttpURLConnection)url.openConnection();
+        connection.setReadTimeout(10000);
+        connection.setConnectTimeout(10000);
 
         try {
 
