@@ -10,9 +10,11 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.SearchView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +27,7 @@ public class PhotoGalleryFragment extends Fragment {
     private RecyclerView mPhotoRecyclerView;
     private List<GalleryItem> mItems = new ArrayList<>();
 
+
     public static PhotoGalleryFragment newInstance() {
         return new PhotoGalleryFragment();
     }
@@ -34,8 +37,11 @@ public class PhotoGalleryFragment extends Fragment {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
         setHasOptionsMenu(true);
-        new FetchItemsTask().execute();
+//        new FetchItemsTask().execute();
+        updateItems();
+
     }
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -44,6 +50,8 @@ public class PhotoGalleryFragment extends Fragment {
 
         mPhotoRecyclerView = (RecyclerView) v.findViewById(R.id.photo_recycler_view);
         mPhotoRecyclerView.setLayoutManager(new GridLayoutManager(getActivity(), 3));
+
+
 
         Log.i(TAG, "onCreateView: Your oncreate View ");
 
@@ -56,14 +64,73 @@ public class PhotoGalleryFragment extends Fragment {
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
-
         inflater.inflate(R.menu.fragment_menu_items,menu);
+
+        MenuItem menuItem=menu.findItem(R.id.menu_item_search);
+        final SearchView searchView=(SearchView)menuItem.getActionView();
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+
+                Log.d(TAG, "onQueryTextSubmit: "+query);
+
+                QueryPreferences.setStoredQuery(getActivity(),query);
+                updateItems();
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String query) {
+
+                Log.d(TAG, "onQueryTextChange: "+query);
+               return false;
+            }
+        });
+
+        searchView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                String query=QueryPreferences.getStrotedQuery(getActivity());
+                searchView.setQuery(query,false);
+
+            }
+        });
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch(item.getItemId()){
+
+            case R.id.menu_item_cleaner:
+                    QueryPreferences.setStoredQuery(getActivity(),null);
+                    updateItems();
+                    return true;
+
+                    default:
+                        return super.onOptionsItemSelected(item);
+
+
+
+        }
+
+
+    }
+
+    private void updateItems() {
+        String query=QueryPreferences.getStrotedQuery(getActivity());
+        new FetchItemsTask(query).execute();
+
     }
 
     private void setupAdapter() {
         if (isAdded()) {
             mPhotoRecyclerView.setAdapter(new PhotoAdapter(mItems));
         }
+
+
     }
 
     private class PhotoHolder extends RecyclerView.ViewHolder {
@@ -74,6 +141,7 @@ public class PhotoGalleryFragment extends Fragment {
 
             mImageView = itemView.findViewById(R.id.item_image_view);
         }
+
 
         public void bindDrawable(Drawable drawable) {
 
@@ -124,18 +192,25 @@ public class PhotoGalleryFragment extends Fragment {
     }
 
     private class FetchItemsTask extends AsyncTask<Void, Void, List<GalleryItem>> {
+
+        private String mQuery;
+
+        public FetchItemsTask(String query){
+
+            mQuery=query;
+        }
+
         @Override
         protected List<GalleryItem> doInBackground(Void... params) {
 
-            String query="cat";
 
-            if(query==null){
+            if(mQuery==null){
 
                 return new FlickrFetchr().fetchRecentPhotos();
 
             }else {
 
-                return new FlickrFetchr().searchPhotos(query);
+                return new FlickrFetchr().searchPhotos(mQuery);
             }
 
 
